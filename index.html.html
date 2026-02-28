@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>CompeteIQ — Intelligence Compétitive E-Commerce</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Stripe.js -->
+<script src="https://js.stripe.com/v3/"></script>
+
+<style>
+/* ════════════════════════════════════════════
+   CONFIGURATION — remplace ces 5 valeurs
+   ════════════════════════════════════════════ */
+:root {
+  --bg:#05070f; --s1:#090d1a; --s2:#0e1422; --border:#161d30;
+  --g:#00e676; --r:#ff3d5a; --b:#3d6bff;
+  --text:#e8eaf6; --muted:#4a5578; --muted2:#8892b0;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;overflow-x:hidden;}
+a{text-decoration:none;color:inherit;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 5%;height:72px;background:rgba(5,7,15,0.85);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,0.04);}
+.logo{font-family:'Bebas Neue',cursive;font-size:28px;background:linear-gradient(135deg,var(--g),var(--b));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.05em;}
+.nav-links{display:flex;align-items:center;gap:36px;}
+.nav-links a{font-size:13px;color:var(--muted2);font-weight:500;transition:color .2s;}
+.nav-links a:hover{color:var(--text);}
+.nav-cta{padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;background:var(--g);color:#000!important;transition:all .2s;}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,230,118,.3);}
+
+/* HERO */
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;overflow:hidden;}
+.hero-glow{position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:900px;height:600px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,230,118,.07) 0%,transparent 70%);pointer-events:none;}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(0,230,118,.2);background:rgba(0,230,118,.06);border-radius:100px;padding:7px 18px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--g);letter-spacing:.1em;text-transform:uppercase;margin-bottom:28px;}
+.bdot{width:6px;height:6px;background:var(--g);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+h1{font-family:'Bebas Neue',cursive;font-size:clamp(60px,10vw,120px);line-height:.88;letter-spacing:.02em;margin-bottom:24px;}
+.c1{color:var(--g);text-shadow:0 0 60px rgba(0,230,118,.35);}
+.c2{color:var(--r);text-shadow:0 0 60px rgba(255,61,90,.3);}
+.hero-sub{font-size:clamp(15px,2vw,18px);color:var(--muted2);font-weight:300;max-width:580px;line-height:1.7;margin-bottom:44px;}
+.hero-sub strong{color:var(--text);font-weight:600;}
+.hero-btns{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;}
+.btn-primary{padding:16px 36px;border-radius:12px;font-size:15px;font-weight:700;background:var(--g);color:#000;border:none;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.btn-primary:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,230,118,.35);}
+.btn-secondary{padding:16px 32px;border-radius:12px;font-size:15px;font-weight:600;background:transparent;color:var(--text);border:1px solid var(--border);cursor:pointer;transition:all .25s;}
+.btn-secondary:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.04);}
+.hero-note{margin-top:18px;font-size:12px;color:var(--muted);}
+.hero-stats{display:flex;align-items:center;gap:40px;margin-top:72px;padding-top:40px;border-top:1px solid var(--border);flex-wrap:wrap;justify-content:center;}
+.stat-num{font-family:'Bebas Neue',cursive;font-size:42px;color:var(--g);line-height:1;}
+.stat-label{font-size:12px;color:var(--muted);margin-top:4px;}
+.stat-div{width:1px;height:48px;background:var(--border);}
+
+/* LOGOS */
+.logos-bar{position:relative;z-index:1;padding:40px 5%;border-top:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center;}
+.logos-bar p{font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:24px;font-family:'JetBrains Mono',monospace;}
+.logos-row{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;}
+.logo-pill{font-size:13px;font-weight:600;color:var(--muted);padding:8px 20px;border:1px solid var(--border);border-radius:8px;letter-spacing:.05em;transition:all .2s;}
+.logo-pill:hover{color:var(--text);border-color:rgba(255,255,255,.15);}
+
+/* SECTIONS */
+section{position:relative;z-index:1;padding:100px 5%;}
+.section-label{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--g);letter-spacing:.15em;text-transform:uppercase;margin-bottom:14px;}
+.section-title{font-family:'Bebas Neue',cursive;font-size:clamp(40px,5vw,64px);line-height:1;letter-spacing:.03em;margin-bottom:18px;}
+.section-sub{font-size:16px;color:var(--muted2);font-weight:300;max-width:520px;line-height:1.7;}
+
+/* HOW */
+.how{background:var(--s1);}
+.steps-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:60px;border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+.step-card{background:var(--s2);padding:40px 32px;position:relative;transition:background .3s;}
+.step-card:hover{background:#111827;}
+.step-card::before{content:attr(data-num);font-family:'Bebas Neue',cursive;font-size:80px;color:rgba(255,255,255,.03);position:absolute;top:16px;right:20px;line-height:1;}
+.step-icon{font-size:32px;margin-bottom:18px;}
+.step-num-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.2);color:var(--g);font-size:12px;font-weight:700;margin-bottom:16px;}
+.step-card h3{font-size:18px;font-weight:700;margin-bottom:10px;}
+.step-card p{font-size:13px;color:var(--muted2);line-height:1.65;}
+
+/* FEATURES */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:60px;}
+.feature-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:28px;transition:all .3s;cursor:default;}
+.feature-card:hover{border-color:rgba(0,230,118,.2);transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.4);}
+.feature-card.accent{border-color:rgba(0,230,118,.15);background:rgba(0,230,118,.03);}
+.feat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:18px;background:var(--s2);border:1px solid var(--border);}
+.feature-card h3{font-size:16px;font-weight:700;margin-bottom:8px;}
+.feature-card p{font-size:13px;color:var(--muted2);line-height:1.6;}
+
+/* DEMO */
+.demo-section{background:var(--s1);}
+.demo-wrap{margin-top:60px;border:1px solid var(--border);border-radius:20px;overflow:hidden;}
+.demo-bar{background:var(--s2);padding:14px 20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
+.demo-dot{width:12px;height:12px;border-radius:50%;}
+.demo-content{padding:48px;display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:center;}
+.demo-big-score{font-family:'Bebas Neue',cursive;font-size:120px;line-height:1;color:var(--g);text-shadow:0 0 60px rgba(0,230,118,.4);}
+.demo-bars{display:flex;flex-direction:column;gap:14px;}
+.demo-bar-row{display:flex;align-items:center;gap:12px;}
+.demo-bar-label{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);width:72px;text-align:right;}
+.demo-bar-track{flex:1;height:8px;background:var(--s1);border-radius:4px;overflow:hidden;}
+.demo-bar-fill{height:100%;border-radius:4px;}
+.demo-bar-val{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text);width:28px;}
+
+/* TESTIMONIALS */
+.testi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:60px;}
+.testi-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:28px;}
+.testi-stars{color:#f5a623;font-size:14px;margin-bottom:16px;letter-spacing:2px;}
+.testi-card p{font-size:14px;color:var(--muted2);line-height:1.7;margin-bottom:20px;font-style:italic;}
+.testi-author{display:flex;align-items:center;gap:12px;}
+.testi-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#000;flex-shrink:0;}
+.testi-name{font-size:13px;font-weight:600;}
+.testi-role{font-size:11px;color:var(--muted);margin-top:2px;}
+
+/* PRICING */
+.pricing{background:var(--s1);}
+.pricing-center{text-align:center;}
+.pricing-toggle{display:flex;align-items:center;gap:12px;margin-top:28px;justify-content:center;}
+.toggle-label{font-size:13px;color:var(--muted2);}
+.toggle-label.active{color:var(--text);font-weight:600;}
+.toggle-track{width:44px;height:24px;background:var(--border);border-radius:100px;position:relative;cursor:pointer;transition:background .3s;}
+.toggle-track.on{background:var(--g);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:transform .3s;}
+.toggle-track.on .toggle-thumb{transform:translateX(20px);}
+.save-badge{background:rgba(0,230,118,.1);color:var(--g);border:1px solid rgba(0,230,118,.2);font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 10px;border-radius:100px;}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:48px;}
+.pricing-card{background:var(--s2);border:1px solid var(--border);border-radius:20px;padding:36px;position:relative;transition:all .3s;}
+.pricing-card:hover{transform:translateY(-4px);}
+.pricing-card.popular{border-color:var(--g);background:rgba(0,230,118,.03);transform:scale(1.03);}
+.pricing-card.popular:hover{transform:scale(1.03) translateY(-4px);}
+.popular-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:var(--g);color:#000;font-size:11px;font-weight:700;padding:4px 16px;border-radius:100px;letter-spacing:.08em;white-space:nowrap;}
+.plan-name{font-size:13px;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;}
+.plan-price{display:flex;align-items:baseline;gap:4px;margin-bottom:8px;}
+.price-num{font-family:'Bebas Neue',cursive;font-size:56px;line-height:1;}
+.price-period{font-size:14px;color:var(--muted2);}
+.plan-desc{font-size:13px;color:var(--muted2);margin-bottom:28px;line-height:1.5;padding-bottom:28px;border-bottom:1px solid var(--border);}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:32px;}
+.plan-features li{font-size:13px;display:flex;align-items:flex-start;gap:10px;}
+.plan-features li .check{color:var(--g);flex-shrink:0;}
+.plan-features li .cross{color:var(--muted);flex-shrink:0;}
+.plan-features li.disabled{color:var(--muted);}
+.btn-plan{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .25s;letter-spacing:.04em;font-family:'Sora',sans-serif;}
+.btn-plan.outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+.btn-plan.outline:hover{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.04);}
+.btn-plan.filled{background:var(--g);color:#000;}
+.btn-plan.filled:hover{box-shadow:0 8px 28px rgba(0,230,118,.35);transform:translateY(-2px);}
+.btn-plan.dark{background:var(--border);color:var(--text);}
+.btn-plan.dark:hover{background:#1e2535;}
+.btn-plan:disabled{opacity:.5;cursor:not-allowed;transform:none!important;}
+
+/* FAQ */
+.faq-list{max-width:720px;margin:60px auto 0;display:flex;flex-direction:column;gap:12px;}
+.faq-item{background:var(--s1);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.faq-q{padding:20px 24px;font-size:15px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:background .2s;}
+.faq-q:hover{background:var(--s2);}
+.faq-arrow{color:var(--muted);transition:transform .3s;font-size:18px;}
+.faq-item.open .faq-arrow{transform:rotate(180deg);color:var(--g);}
+.faq-a{padding:0 24px 20px;font-size:14px;color:var(--muted2);line-height:1.7;display:none;}
+.faq-item.open .faq-a{display:block;}
+
+/* CTA */
+.cta-section{text-align:center;padding:120px 5%;background:radial-gradient(ellipse at center,rgba(0,230,118,.06) 0%,transparent 70%);}
+.cta-section h2{font-family:'Bebas Neue',cursive;font-size:clamp(44px,6vw,72px);line-height:1;margin-bottom:20px;}
+.cta-section h2 span{color:var(--g);}
+.cta-section p{font-size:16px;color:var(--muted2);max-width:480px;margin:0 auto 40px;line-height:1.7;}
+.cta-input-row{display:flex;gap:10px;max-width:480px;margin:0 auto;}
+.cta-input{flex:1;padding:14px 20px;border-radius:12px;border:1px solid var(--border);background:var(--s1);color:var(--text);font-size:14px;font-family:'Sora',sans-serif;outline:none;transition:border-color .2s;}
+.cta-input:focus{border-color:var(--g);}
+.cta-input::placeholder{color:var(--muted);}
+.cta-note{font-size:12px;color:var(--muted);margin-top:14px;}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:48px 5%;z-index:1;position:relative;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:48px;}
+.footer-brand .logo-text{font-family:'Bebas Neue',cursive;font-size:26px;background:linear-gradient(135deg,var(--g),var(--b));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.footer-brand p{font-size:13px;color:var(--muted);margin-top:10px;max-width:240px;line-height:1.6;}
+.footer-col h4{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:16px;}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:10px;}
+.footer-col ul li a{font-size:13px;color:var(--muted2);transition:color .2s;}
+.footer-col ul li a:hover{color:var(--text);}
+.footer-bottom{border-top:1px solid var(--border);padding:20px 5%;display:flex;justify-content:space-between;align-items:center;z-index:1;position:relative;}
+.footer-bottom p{font-size:12px;color:var(--muted);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity .3s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:#0e1422;border:1px solid #1e2a42;border-radius:20px;padding:44px 40px;width:100%;max-width:460px;position:relative;transform:translateY(24px);transition:transform .35s;max-height:90vh;overflow-y:auto;}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#3d6bff,#00e676,#ff3d5a);border-radius:20px 20px 0 0;}
+.modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:8px;border:1px solid #1e2a42;background:transparent;color:#4a5578;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;line-height:1;}
+.modal-close:hover{background:#1a1f2e;color:#e8eaf6;}
+.modal-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.2);border-radius:100px;padding:5px 14px;font-size:11px;color:#00e676;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px;}
+.modal h2{font-family:'Bebas Neue',cursive;font-size:36px;line-height:1;margin-bottom:8px;}
+.modal-sub{font-size:14px;color:#8892b0;margin-bottom:24px;line-height:1.6;}
+.modal-tabs{display:flex;gap:0;margin-bottom:24px;border:1px solid #1e2a42;border-radius:10px;overflow:hidden;}
+.modal-tab{flex:1;padding:10px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#4a5578;transition:all .2s;font-family:'Sora',sans-serif;}
+.modal-tab.active{background:#00e676;color:#000;}
+.modal-field{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.modal-field label{font-size:11px;color:#4a5578;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;}
+.modal-field input{background:#131720;border:1px solid #1e2a42;border-radius:10px;padding:13px 16px;color:#e8eaf6;font-family:'Sora',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;}
+.modal-field input:focus{border-color:#00e676;box-shadow:0 0 0 3px rgba(0,230,118,.1);}
+.modal-field input::placeholder{color:#2e3650;}
+.modal-perks{display:flex;flex-direction:column;gap:7px;margin:16px 0 20px;}
+.modal-perk{font-size:13px;color:#8892b0;display:flex;align-items:center;gap:9px;}
+.modal-submit{width:100%;padding:15px;border-radius:12px;border:none;cursor:pointer;background:#00e676;color:#000;font-size:15px;font-weight:700;font-family:'Sora',sans-serif;transition:all .25s;margin-top:4px;}
+.modal-submit:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 32px rgba(0,230,118,.35);}
+.modal-submit:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.modal-note{text-align:center;font-size:12px;color:#4a5578;margin-top:12px;}
+.modal-error{background:rgba(255,61,90,.1);border:1px solid rgba(255,61,90,.25);border-radius:8px;padding:10px 14px;color:#ff8fa3;font-size:13px;margin-bottom:12px;display:none;}
+.modal-success{text-align:center;padding:16px 0;display:none;}
+.modal-success .ck{font-size:60px;margin-bottom:14px;display:block;}
+.modal-success h3{font-family:'Bebas Neue',cursive;font-size:30px;color:#00e676;margin-bottom:10px;}
+.modal-success p{font-size:14px;color:#8892b0;line-height:1.65;}
+.forgot-link{font-size:12px;color:#4a5578;cursor:pointer;text-align:right;margin-top:-8px;margin-bottom:12px;transition:color .2s;}
+.forgot-link:hover{color:#00e676;}
+
+/* TOAST */
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:#0e1422;border:1px solid #1e2a42;border-radius:12px;padding:14px 24px;font-size:14px;color:#e8eaf6;z-index:2000;opacity:0;transition:all .35s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.success{border-color:rgba(0,230,118,.3);color:#00e676;}
+.toast.error{border-color:rgba(255,61,90,.3);color:#ff8fa3;}
+
+/* FADE IN */
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
+.fade-in.visible{opacity:1;transform:translateY(0);}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .steps-grid,.features-grid,.testi-grid,.pricing-grid{grid-template-columns:1fr;}
+  .pricing-card.popular{transform:scale(1);}
+  .demo-content{grid-template-columns:1fr;text-align:center;}
+  footer{grid-template-columns:1fr 1fr;}
+  .nav-links{display:none;}
+}
+@media(max-width:560px){
+  footer{grid-template-columns:1fr;}
+  .hero-stats{gap:24px;}
+  .cta-input-row{flex-direction:column;}
+  .modal{padding:32px 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">CompeteIQ</div>
+  <div class="nav-links">
+    <a href="#features">Fonctionnalités</a>
+    <a href="#how">Comment ça marche</a>
+    <a href="#pricing">Tarifs</a>
+    <a href="#faq">FAQ</a>
+    <a href="#" id="nav-login">Se connecter</a>
+    <a href="#" class="nav-cta" onclick="event.preventDefault();openModal('Pro')">Essai gratuit →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge"><span class="bdot"></span>Propulsé par Claude AI · Analyse en 30 secondes</div>
+  <h1><span class="c1">ANALYSEZ VOS<br>CONCURRENTS.</span><br><span class="c2">DOMINEZ.</span></h1>
+  <p class="hero-sub">Entrez l'URL d'un concurrent et obtenez <strong>un score compétitif, une analyse complète</strong> et un plan d'action stratégique sur-mesure — en moins de 30 secondes.</p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="openModal('Starter')">Commencer gratuitement →</button>
+    <button class="btn-secondary" onclick="document.querySelector('#how').scrollIntoView({behavior:'smooth'})">Voir la démo ↓</button>
+  </div>
+  <p class="hero-note">✓ Sans carte bancaire &nbsp;·&nbsp; ✓ 2 analyses offertes &nbsp;·&nbsp; ✓ Résultats en 30 sec</p>
+  <div class="hero-stats">
+    <div class="stat-item"><div class="stat-num">4 200+</div><div class="stat-label">E-commerçants actifs</div></div>
+    <div class="stat-div"></div>
+    <div class="stat-item"><div class="stat-num">18 000+</div><div class="stat-label">Analyses réalisées</div></div>
+    <div class="stat-div"></div>
+    <div class="stat-item"><div class="stat-num">4.9/5</div><div class="stat-label">Note moyenne</div></div>
+    <div class="stat-div"></div>
+    <div class="stat-item"><div class="stat-num">+38%</div><div class="stat-label">CA moyen après 90j</div></div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<div class="logos-bar fade-in">
+  <p>Utilisé par des e-commerçants sur ces plateformes</p>
+  <div class="logos-row">
+    <div class="logo-pill">Shopify</div><div class="logo-pill">WooCommerce</div>
+    <div class="logo-pill">PrestaShop</div><div class="logo-pill">Wix Commerce</div>
+    <div class="logo-pill">Magento</div><div class="logo-pill">BigCommerce</div>
+  </div>
+</div>
+
+<!-- HOW -->
+<section class="how" id="how">
+  <div class="section-label">Processus</div>
+  <div class="section-title">COMMENT ÇA MARCHE</div>
+  <div class="section-sub">Trois étapes simples pour une intelligence compétitive actionnable.</div>
+  <div class="steps-grid fade-in">
+    <div class="step-card" data-num="01">
+      <div class="step-num-badge">1</div>
+      <div class="step-icon">🔗</div>
+      <h3>Entrez vos URLs</h3>
+      <p>Renseignez l'URL de votre boutique et celle de votre concurrent. Ajoutez optionnellement vos forces et faiblesses.</p>
+    </div>
+    <div class="step-card" data-num="02">
+      <div class="step-num-badge">2</div>
+      <div class="step-icon">🤖</div>
+      <h3>L'IA analyse tout</h3>
+      <p>Notre moteur Claude AI passe au crible les prix, l'UX, l'offre produit et la stratégie marketing des deux sites.</p>
+    </div>
+    <div class="step-card" data-num="03">
+      <div class="step-num-badge">3</div>
+      <div class="step-icon">🚀</div>
+      <h3>Agissez immédiatement</h3>
+      <p>Recevez un score de compétitivité, une analyse comparative et un plan d'action priorisé pour prendre l'avantage.</p>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO -->
+<section class="demo-section fade-in">
+  <div class="section-label">Aperçu</div>
+  <div class="section-title">RÉSULTATS EN TEMPS RÉEL</div>
+  <div class="demo-wrap">
+    <div class="demo-bar">
+      <div class="demo-dot" style="background:#ff5f57"></div>
+      <div class="demo-dot" style="background:#febc2e"></div>
+      <div class="demo-dot" style="background:#28c840"></div>
+      <div style="flex:1;background:rgba(255,255,255,.04);border-radius:6px;margin-left:8px;padding:4px 12px;font-size:12px;color:var(--muted);font-family:monospace">competeiq.fr/analyse</div>
+    </div>
+    <div class="demo-content">
+      <div style="text-align:center">
+        <div class="demo-big-score" id="animScore">0</div>
+        <div style="font-size:14px;color:var(--muted2);margin-top:-8px">Score de compétitivité</div>
+        <div style="margin-top:16px;display:inline-block;background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.2);border-radius:8px;padding:8px 16px;font-size:13px;color:var(--g);font-weight:600">✓ Position FORTE sur le marché</div>
+      </div>
+      <div class="demo-bars">
+        <div style="font-size:13px;color:var(--muted2);margin-bottom:8px;font-weight:500">Analyse par critère</div>
+        <div class="demo-bar-row"><span class="demo-bar-label">PRIX</span><div class="demo-bar-track"><div class="demo-bar-fill" style="width:78%;background:#00e676"></div></div><span class="demo-bar-val">78</span></div>
+        <div class="demo-bar-row"><span class="demo-bar-label">UX</span><div class="demo-bar-track"><div class="demo-bar-fill" style="width:85%;background:#00e676"></div></div><span class="demo-bar-val">85</span></div>
+        <div class="demo-bar-row"><span class="demo-bar-label">OFFRE</span><div class="demo-bar-track"><div class="demo-bar-fill" style="width:62%;background:#f5a623"></div></div><span class="demo-bar-val">62</span></div>
+        <div class="demo-bar-row"><span class="demo-bar-label">MARKETING</span><div class="demo-bar-track"><div class="demo-bar-fill" style="width:71%;background:#00e676"></div></div><span class="demo-bar-val">71</span></div>
+        <div style="margin-top:20px;padding:16px;background:rgba(0,230,118,.05);border:1px solid rgba(0,230,118,.15);border-radius:10px">
+          <div style="font-size:11px;color:var(--g);font-family:monospace;letter-spacing:.08em;margin-bottom:8px">ACTION PRIORITAIRE #1</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px">Relancer le programme fidélité</div>
+          <div style="font-size:12px;color:var(--muted2)">Votre concurrent convertit 2x mieux grâce à son programme de points.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">Fonctionnalités</div>
+  <div class="section-title">TOUT CE DONT VOUS AVEZ BESOIN</div>
+  <div class="features-grid fade-in">
+    <div class="feature-card accent"><div class="feat-icon">🎯</div><h3>Score Compétitif IA</h3><p>Un score de 0 à 100 sur 4 dimensions : prix, UX, offre et marketing. Sachez exactement où vous en êtes.</p></div>
+    <div class="feature-card"><div class="feat-icon">⚡</div><h3>Analyse en 30 secondes</h3><p>Notre moteur IA analyse les deux sites simultanément et génère un rapport complet en moins d'une minute.</p></div>
+    <div class="feature-card"><div class="feat-icon">🗺️</div><h3>Plan d'action priorisé</h3><p>5 actions concrètes classées par priorité (Urgent / Important / À planifier) pour un impact immédiat.</p></div>
+    <div class="feature-card"><div class="feat-icon">📊</div><h3>Comparaison détaillée</h3><p>Analyse côte-à-côte de vos forces et faiblesses versus le concurrent, avec les opportunités à saisir.</p></div>
+    <div class="feature-card"><div class="feat-icon">📄</div><h3>Export PDF</h3><p>Exportez vos analyses en PDF professionnel pour les partager avec votre équipe. (Pro & Agency)</p></div>
+    <div class="feature-card"><div class="feat-icon">📈</div><h3>Suivi dans le temps</h3><p>Comparez vos scores semaine après semaine et mesurez vos progrès face à la concurrence. (Pro & Agency)</p></div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section style="background:var(--s1)">
+  <div class="section-label">Témoignages</div>
+  <div class="section-title">ILS ONT PRIS L'AVANTAGE</div>
+  <div class="testi-grid fade-in">
+    <div class="testi-card"><div class="testi-stars">★★★★★</div><p>"En 3 analyses, j'ai identifié que mon concurrent convertissait mieux grâce à son checkout en 1 clic. J'ai corrigé ça en une semaine. +22% de conversions."</p><div class="testi-author"><div class="testi-avatar" style="background:var(--g)">S</div><div><div class="testi-name">Sarah M.</div><div class="testi-role">Fondatrice · Boutique mode Paris</div></div></div></div>
+    <div class="testi-card"><div class="testi-stars">★★★★★</div><p>"J'utilisais SEMrush avant. CompeteIQ me donne exactement ce que je veux en 1/10 du prix et 10x plus vite. Game changer pour mon agence."</p><div class="testi-author"><div class="testi-avatar" style="background:var(--b)">K</div><div><div class="testi-name">Karim D.</div><div class="testi-role">Consultant e-commerce · 14 clients</div></div></div></div>
+    <div class="testi-card"><div class="testi-stars">★★★★★</div><p>"Le plan d'action est vraiment actionnable. Pas des généralités — des vraies recommandations basées sur mon concurrent spécifique. Bluffant."</p><div class="testi-author"><div class="testi-avatar" style="background:#9333ea">L</div><div><div class="testi-name">Lucie T.</div><div class="testi-role">CEO · Startup DTC cosmétique</div></div></div></div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="pricing-center">
+    <div class="section-label" style="display:inline-block">Tarifs</div>
+    <div class="section-title">SIMPLE ET TRANSPARENT</div>
+    <div class="section-sub" style="margin:0 auto">Commencez gratuitement. Passez au plan supérieur quand vous êtes prêt.</div>
+    <div class="pricing-toggle">
+      <span class="toggle-label active" id="monthly-label">Mensuel</span>
+      <div class="toggle-track" id="billing-toggle" onclick="toggleBilling()"><div class="toggle-thumb"></div></div>
+      <span class="toggle-label" id="annual-label">Annuel</span>
+      <span class="save-badge">-20%</span>
+    </div>
+  </div>
+  <div class="pricing-grid fade-in">
+    <div class="pricing-card">
+      <div class="plan-name">Starter</div>
+      <div class="plan-price"><span class="price-num">0€</span><span class="price-period">/mois</span></div>
+      <p class="plan-desc">Pour découvrir l'outil. Idéal pour les petites boutiques qui démarrent.</p>
+      <ul class="plan-features">
+        <li><span class="check">✓</span>2 analyses par mois</li>
+        <li><span class="check">✓</span>Score compétitif global</li>
+        <li><span class="check">✓</span>Plan d'action 5 points</li>
+        <li><span class="check">✓</span>Analyse comparative basique</li>
+        <li class="disabled"><span class="cross">✗</span>Export PDF</li>
+        <li class="disabled"><span class="cross">✗</span>Historique des analyses</li>
+      </ul>
+      <button class="btn-plan outline" onclick="openModal('Starter')">Commencer gratuitement</button>
+    </div>
+    <div class="pricing-card popular">
+      <div class="popular-badge">⚡ LE PLUS POPULAIRE</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price"><span class="price-num" id="pro-price">29€</span><span class="price-period">/mois</span></div>
+      <p class="plan-desc">Pour les e-commerçants sérieux qui surveillent leur marché en continu.</p>
+      <ul class="plan-features">
+        <li><span class="check">✓</span>Analyses illimitées</li>
+        <li><span class="check">✓</span>Score compétitif complet</li>
+        <li><span class="check">✓</span>Plan d'action détaillé</li>
+        <li><span class="check">✓</span>Analyse comparative approfondie</li>
+        <li><span class="check">✓</span>Export PDF professionnel</li>
+        <li><span class="check">✓</span>Historique 30 analyses</li>
+      </ul>
+      <button class="btn-plan filled" id="btn-pro" onclick="openModal('Pro')">Démarrer l'essai 7 jours →</button>
+    </div>
+    <div class="pricing-card">
+      <div class="plan-name">Agency</div>
+      <div class="plan-price"><span class="price-num" id="agency-price">99€</span><span class="price-period">/mois</span></div>
+      <p class="plan-desc">Pour les agences et consultants gérant plusieurs boutiques clientes.</p>
+      <ul class="plan-features">
+        <li><span class="check">✓</span>Tout le plan Pro</li>
+        <li><span class="check">✓</span>10 sous-comptes clients</li>
+        <li><span class="check">✓</span>Rapports white-label</li>
+        <li><span class="check">✓</span>Historique illimité</li>
+        <li><span class="check">✓</span>Accès API</li>
+        <li><span class="check">✓</span>Support prioritaire</li>
+      </ul>
+      <button class="btn-plan dark" onclick="openModal('Agency')">Démarrer l'essai 7 jours →</button>
+    </div>
+  </div>
+  <p style="text-align:center;margin-top:28px;font-size:13px;color:var(--muted)">✓ Sans engagement &nbsp;·&nbsp; ✓ Annulation à tout moment &nbsp;·&nbsp; ✓ Paiement sécurisé Stripe</p>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div style="text-align:center"><div class="section-label" style="display:inline-block">FAQ</div><div class="section-title">QUESTIONS FRÉQUENTES</div></div>
+  <div class="faq-list fade-in">
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Comment CompeteIQ analyse-t-il les sites ? <span class="faq-arrow">↓</span></div><div class="faq-a">Notre moteur utilise Claude AI pour analyser les deux URLs. L'IA étudie la structure, le positionnement prix, l'UX, l'offre produit et les signaux marketing pour générer une analyse comparative précise.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">L'analyse est-elle vraiment faite en 30 secondes ? <span class="faq-arrow">↓</span></div><div class="faq-a">Oui ! L'analyse complète prend entre 20 et 45 secondes selon la complexité des sites. Vous recevez en temps réel le score, l'analyse comparative sur 4 critères et un plan d'action priorisé.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Puis-je analyser n'importe quel concurrent ? <span class="faq-arrow">↓</span></div><div class="faq-a">Oui, CompeteIQ fonctionne avec tous les types de boutiques : Shopify, WooCommerce, PrestaShop, sites custom, etc. Il suffit d'entrer l'URL publique du concurrent.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Puis-je annuler mon abonnement à tout moment ? <span class="faq-arrow">↓</span></div><div class="faq-a">Absolument. Aucun engagement. Vous pouvez annuler en 1 clic depuis votre tableau de bord. Vous conservez l'accès jusqu'à la fin de la période payée.</div></div>
+    <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)">Mes données sont-elles sécurisées ? <span class="faq-arrow">↓</span></div><div class="faq-a">Vos analyses sont privées et chiffrées. Nous ne partageons jamais vos données. Le paiement est géré par Stripe (certifié PCI DSS Level 1).</div></div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-section">
+  <h2>PRÊT À <span>DOMINER</span><br>VOTRE MARCHÉ ?</h2>
+  <p>Rejoignez 4 200+ e-commerçants qui utilisent CompeteIQ pour prendre des décisions stratégiques basées sur des données réelles.</p>
+  <div class="cta-input-row">
+    <input class="cta-input" type="email" id="cta-email" placeholder="votre@email.com"/>
+    <button class="btn-primary" onclick="openModalWithEmail()">Commencer →</button>
+  </div>
+  <p class="cta-note">✓ Gratuit · ✓ Sans carte bancaire · ✓ 2 analyses offertes dès l'inscription</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand"><div class="logo-text">CompeteIQ</div><p>Intelligence compétitive e-commerce propulsée par l'IA.</p></div>
+  <div class="footer-col"><h4>Produit</h4><ul><li><a href="#features">Fonctionnalités</a></li><li><a href="#pricing">Tarifs</a></li><li><a href="#">Changelog</a></li></ul></div>
+  <div class="footer-col"><h4>Ressources</h4><ul><li><a href="#">Blog</a></li><li><a href="#">Documentation</a></li><li><a href="#">Support</a></li></ul></div>
+  <div class="footer-col"><h4>Légal</h4><ul><li><a href="#">CGU</a></li><li><a href="#">Confidentialité</a></li><li><a href="#">Mentions légales</a></li></ul></div>
+</footer>
+<div class="footer-bottom">
+  <p>© 2025 CompeteIQ. Tous droits réservés.</p>
+  <p style="font-size:12px;color:var(--muted)">Propulsé par Claude AI · Paiements sécurisés par Stripe</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     MODAL INSCRIPTION / CONNEXION
+═══════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="signupModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+
+    <!-- FORM -->
+    <div id="mFormWrap">
+      <div class="modal-badge">&#10022; <span id="mPlanLabel">Plan Starter</span></div>
+      <h2 id="mTitle">CRÉEZ VOTRE<br>COMPTE</h2>
+      <p class="modal-sub" id="mSub">Commencez à analyser vos concurrents. Sans carte bancaire.</p>
+
+      <!-- TABS inscription / connexion -->
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="tab-signup" onclick="switchTab('signup')">Créer un compte</button>
+        <button class="modal-tab" id="tab-login" onclick="switchTab('login')">Se connecter</button>
+      </div>
+
+      <div id="mErrorBox" class="modal-error"></div>
+
+      <!-- SIGNUP FIELDS -->
+      <div id="signup-fields">
+        <div class="modal-field"><label>Prénom</label><input type="text" id="mName" placeholder="Votre prénom"/></div>
+        <div class="modal-field"><label>Email</label><input type="email" id="mEmail" placeholder="vous@boutique.com"/></div>
+        <div class="modal-field"><label>Mot de passe</label><input type="password" id="mPass" placeholder="8 caractères minimum"/></div>
+        <div class="modal-perks">
+          <div class="modal-perk"><span style="color:#00e676">✓</span> 2 analyses offertes à l'inscription</div>
+          <div class="modal-perk"><span style="color:#00e676">✓</span> Résultats en 30 secondes</div>
+          <div class="modal-perk"><span style="color:#00e676">✓</span> Sans carte bancaire</div>
+          <div class="modal-perk"><span style="color:#00e676">✓</span> Annulation à tout moment</div>
+        </div>
+        <button class="modal-submit" id="mSubmitBtn" onclick="doSignup()">Créer mon compte gratuitement →</button>
+        <p class="modal-note">En vous inscrivant vous acceptez nos <a href="#" style="color:#00e676">CGU</a>.</p>
+      </div>
+
+      <!-- LOGIN FIELDS -->
+      <div id="login-fields" style="display:none">
+        <div class="modal-field"><label>Email</label><input type="email" id="lEmail" placeholder="vous@boutique.com"/></div>
+        <div class="modal-field"><label>Mot de passe</label><input type="password" id="lPass" placeholder="Votre mot de passe"/></div>
+        <div class="forgot-link" onclick="doForgotPassword()">Mot de passe oublié ?</div>
+        <button class="modal-submit" id="lSubmitBtn" onclick="doLogin()">Se connecter →</button>
+      </div>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div class="modal-success" id="mSuccessWrap">
+      <span class="ck">✉️</span>
+      <h3>VÉRIFIEZ VOS EMAILS !</h3>
+      <p>Un lien de confirmation a été envoyé à<br><strong id="mSuccessEmail" style="color:#e8eaf6"></strong><br><br>Cliquez sur le lien pour activer votre compte et commencer à analyser vos concurrents.</p>
+      <p style="font-size:12px;color:#4a5578;margin-top:12px">Vous ne voyez pas l'email ? Vérifiez vos spams.</p>
+      <button class="modal-submit" style="margin-top:24px" onclick="closeModal()">Fermer</button>
+    </div>
+
+    <!-- RESET PASSWORD SUCCESS -->
+    <div class="modal-success" id="mResetWrap">
+      <span class="ck">📬</span>
+      <h3>EMAIL ENVOYÉ !</h3>
+      <p>Si un compte existe avec cette adresse, vous recevrez un lien pour réinitialiser votre mot de passe.</p>
+      <button class="modal-submit" style="margin-top:24px" onclick="closeModal()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT — Supabase + Stripe + UI
+═══════════════════════════════════════════════ -->
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIGURATION — remplace ces 5 valeurs
+// ══════════════════════════════════════════════════════
+var SUPABASE_URL        = "https://giamluqmumqdrwapppao.supabase.co";
+var SUPABASE_ANON_KEY   = "sb_publishable_QUAU10J8jsgHx3CfuwxZHw_nQRKik9e";
+var STRIPE_PUB_KEY      = "REMPLACE_PAR_TA_CLE_STRIPE";
+var STRIPE_PRICE_PRO    = "REMPLACE_PAR_TON_PRICE_ID_PRO";
+var STRIPE_PRICE_AGENCY = "REMPLACE_PAR_TON_PRICE_ID_AGENCY";
+
+// ── Globals accessibles partout ──────────────
+var currentPlan = 'Starter';
+var isAnnual    = false;
+var scored      = false;
+var sb          = null;
+var stripeInst  = null;
+
+// ── Init sécurisée (ne plante pas si clés manquantes) ──
+(function() {
+  try {
+    if (typeof supabase !== 'undefined' && SUPABASE_URL.indexOf('REMPLACE') === -1) {
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+  } catch(e) { console.warn('Supabase: configure tes clés dans le fichier HTML'); }
+
+  try {
+    if (typeof Stripe !== 'undefined' && STRIPE_PUB_KEY.indexOf('REMPLACE') === -1) {
+      stripeInst = Stripe(STRIPE_PUB_KEY);
+    }
+  } catch(e) { console.warn('Stripe: configure ta clé dans le fichier HTML'); }
+})();
+
+// ── TOAST ────────────────────────────────────
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (type || 'success');
+  setTimeout(function() { t.className = 'toast'; }, 3500);
+}
+
+// ── MODAL ────────────────────────────────────
+function openModal(plan) {
+  currentPlan = plan || 'Starter';
+  document.getElementById('mPlanLabel').textContent = 'Plan ' + currentPlan;
+  document.getElementById('signupModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  showForm();
+  switchTab('signup');
+}
+
+function openModalWithEmail() {
+  var email = document.getElementById('cta-email').value.trim();
+  openModal('Starter');
+  if (email) {
+    setTimeout(function() { document.getElementById('mEmail').value = email; }, 100);
+  }
+}
+
+function closeModal() {
+  document.getElementById('signupModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function showForm() {
+  document.getElementById('mFormWrap').style.display = 'block';
+  document.getElementById('mSuccessWrap').style.display = 'none';
+  document.getElementById('mResetWrap').style.display = 'none';
+  hideError();
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('signup-fields').style.display = tab === 'signup' ? 'block' : 'none';
+  document.getElementById('login-fields').style.display  = tab === 'login'  ? 'block' : 'none';
+  hideError();
+}
+
+function showError(msg) {
+  var box = document.getElementById('mErrorBox');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+function hideError() {
+  document.getElementById('mErrorBox').style.display = 'none';
+}
+
+// ── SIGN UP ──────────────────────────────────
+async function doSignup() {
+  var name  = document.getElementById('mName').value.trim();
+  var email = document.getElementById('mEmail').value.trim();
+  var pass  = document.getElementById('mPass').value;
+  hideError();
+
+  if (!name)  { showError('Veuillez entrer votre prénom.'); document.getElementById('mName').focus(); return; }
+  if (!email || !email.includes('@')) { showError('Adresse email invalide.'); document.getElementById('mEmail').focus(); return; }
+  if (pass.length < 8) { showError('Mot de passe : 8 caractères minimum.'); document.getElementById('mPass').focus(); return; }
+
+  if (!sb) {
+    showError('Supabase non configuré. Suivez le guide PDF pour ajouter vos clés.');
+    return;
+  }
+
+  var btn = document.getElementById('mSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Création en cours...';
+
+  var result = await sb.auth.signUp({
+    email: email,
+    password: pass,
+    options: {
+      data: { full_name: name, plan: currentPlan },
+      emailRedirectTo: window.location.origin
+    }
+  });
+
+  btn.disabled = false; btn.textContent = 'Créer mon compte gratuitement →';
+
+  if (result.error) {
+    var msgs = {
+      'User already registered': 'Un compte existe déjà avec cet email. Connectez-vous !',
+      'Password should be at least 6 characters': 'Mot de passe trop court (8 caractères minimum).',
+    };
+    showError(msgs[result.error.message] || result.error.message);
+    return;
+  }
+
+  document.getElementById('mSuccessEmail').textContent = email;
+  document.getElementById('mFormWrap').style.display = 'none';
+  document.getElementById('mSuccessWrap').style.display = 'block';
+
+  if (currentPlan === 'Pro' || currentPlan === 'Agency') {
+    sessionStorage.setItem('pendingPlan', currentPlan);
+  }
+}
+
+// ── LOGIN ────────────────────────────────────
+async function doLogin() {
+  var email = document.getElementById('lEmail').value.trim();
+  var pass  = document.getElementById('lPass').value;
+  hideError();
+
+  if (!email || !email.includes('@')) { showError('Adresse email invalide.'); return; }
+  if (!pass) { showError('Veuillez entrer votre mot de passe.'); return; }
+
+  if (!sb) { showError('Supabase non configuré. Suivez le guide PDF.'); return; }
+
+  var btn = document.getElementById('lSubmitBtn');
+  btn.disabled = true; btn.textContent = 'Connexion...';
+
+  var result = await sb.auth.signInWithPassword({ email: email, password: pass });
+
+  btn.disabled = false; btn.textContent = 'Se connecter →';
+
+  if (result.error) {
+    var msgs = {
+      'Invalid login credentials': 'Email ou mot de passe incorrect.',
+      'Email not confirmed': 'Confirmez votre email avant de vous connecter.',
+    };
+    showError(msgs[result.error.message] || result.error.message);
+    return;
+  }
+
+  closeModal();
+  toast('Connexion réussie ! Bienvenue 👋');
+  updateNavForUser(result.data.user);
+
+  var pendingPlan = sessionStorage.getItem('pendingPlan');
+  if (pendingPlan) {
+    sessionStorage.removeItem('pendingPlan');
+    redirectToStripe(pendingPlan);
+  }
+}
+
+// ── FORGOT PASSWORD ──────────────────────────
+async function doForgotPassword() {
+  var email = document.getElementById('lEmail').value.trim();
+  if (!email || !email.includes('@')) {
+    showError('Entrez votre email ci-dessus pour recevoir le lien.');
+    return;
+  }
+  if (sb) await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
+  document.getElementById('mFormWrap').style.display = 'none';
+  document.getElementById('mResetWrap').style.display = 'block';
+}
+
+// ── STRIPE ───────────────────────────────────
+async function redirectToStripe(plan) {
+  if (!stripeInst) { toast('Stripe non configuré. Suivez le guide PDF.', 'error'); return; }
+  var priceId = plan === 'Pro' ? STRIPE_PRICE_PRO : STRIPE_PRICE_AGENCY;
+  var result = await stripeInst.redirectToCheckout({
+    lineItems: [{ price: priceId, quantity: 1 }],
+    mode: 'subscription',
+    successUrl: window.location.origin + '?payment=success',
+    cancelUrl:  window.location.origin + '?payment=cancelled',
+  });
+  if (result.error) toast('Erreur paiement : ' + result.error.message, 'error');
+}
+
+// ── AUTH STATE ───────────────────────────────
+function updateNavForUser(user) {
+  var loginLink = document.getElementById('nav-login');
+  if (user) {
+    loginLink.textContent = 'Mon espace →';
+    loginLink.onclick = async function(e) {
+      e.preventDefault();
+      if (sb) await sb.auth.signOut();
+      loginLink.textContent = 'Se connecter';
+      loginLink.onclick = null;
+      toast('Déconnecté avec succès.');
+    };
+  }
+}
+
+if (sb) {
+  sb.auth.onAuthStateChange(function(event, session) {
+    if (session && session.user) updateNavForUser(session.user);
+  });
+}
+
+// Check URL params after payment
+var urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('payment') === 'success') {
+  toast('Paiement confirmé ! Votre plan est actif. 🎉');
+  window.history.replaceState({}, '', window.location.pathname);
+}
+if (urlParams.get('payment') === 'cancelled') {
+  toast('Paiement annulé.', 'error');
+  window.history.replaceState({}, '', window.location.pathname);
+}
+
+// ── BILLING TOGGLE ────────────────────────────
+function toggleBilling() {
+  isAnnual = !isAnnual;
+  var track = document.getElementById('billing-toggle');
+  track.classList.toggle('on', isAnnual);
+  document.getElementById('monthly-label').classList.toggle('active', !isAnnual);
+  document.getElementById('annual-label').classList.toggle('active', isAnnual);
+  document.getElementById('pro-price').textContent    = isAnnual ? '23€' : '29€';
+  document.getElementById('agency-price').textContent = isAnnual ? '79€' : '99€';
+}
+
+// ── FAQ ───────────────────────────────────────
+function toggleFaq(el) {
+  var item = el.parentElement;
+  var wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(function(i) { i.classList.remove('open'); });
+  if (!wasOpen) item.classList.add('open');
+}
+
+// ── NAV LOGIN LINK ────────────────────────────
+document.getElementById('nav-login').addEventListener('click', function(e) {
+  e.preventDefault();
+  openModal('Starter');
+  setTimeout(function() { switchTab('login'); }, 50);
+});
+
+document.getElementById('signupModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ── SCROLL ANIMATIONS ─────────────────────────
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(function(el) { observer.observe(el); });
+
+// ── SCORE COUNTER ─────────────────────────────
+var scoreEl = document.getElementById('animScore');
+new IntersectionObserver(function(entries) {
+  if (entries[0].isIntersecting && !scored) {
+    scored = true;
+    var v = 0;
+    function go() { v = Math.min(v+2, 74); scoreEl.textContent = v; if(v<74) requestAnimationFrame(go); }
+    requestAnimationFrame(go);
+  }
+}).observe(scoreEl);
+
+// ── SMOOTH SCROLL ─────────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    var target = document.querySelector(a.getAttribute('href'));
+    if (target) { e.preventDefault(); target.scrollIntoView({behavior:'smooth'}); }
+  });
+});
+</script>
+</body>
+</html>
